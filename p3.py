@@ -14,10 +14,10 @@ def parse(fname):									#parses first input file and creates a list of Process
 			t = t.split("-")						#format of lists is tuple: (arrival/exit time, process name, num frames)
 			arrivals.append((int(t[0]), process[0], int(process[1])))
 			exits.append((int(t[1]), process[0], int(process[1])))
-	#sort both lists, first by arrival/exit times, then by process name	
-	arrivals = sorted(arrivals, key=operator.itemgetter(0,1))		
+	#sort both lists, first by arrival/exit times, then by process name
+	arrivals = sorted(arrivals, key=operator.itemgetter(0,1))
 	exits = sorted(exits, key=operator.itemgetter(0,1))
-	return [arrivals, exits]						#return both lists		
+	return [arrivals, exits]						#return both lists
 
 def printM(memory, formatF):						#prints the memory for the first two parts of the assignment
 	f = "="*formatF
@@ -60,9 +60,9 @@ def deFragment(memory, time, t_memmove, formatF, arrivals, exits):							#moves 
 	proc = ""
 	for i in range(0, len(p)):
 		if i != 0:
-			proc += ", " + p[i] 
+			proc += ", " + p[i]
 		else:
-			proc += " " + p[i] 
+			proc += " " + p[i]
 	print "time %dms: Defragmentation complete (moved %d frames: %s)" %(time, lastItem - firstItem, proc)
 	print printM(memory, formatF)
 
@@ -75,8 +75,6 @@ def deFragment(memory, time, t_memmove, formatF, arrivals, exits):							#moves 
 		exits[i] = (newT, exits[i][1], exits[i][2])
 
 	return [memory, time, lastItem, arrivals, exits]				#return new memory 
-
-
 
 def simulateFirstFit(l, frames, formatF, t_memmove):
 	memory = ["."]*frames							#visual of the memory
@@ -133,7 +131,7 @@ def simulateFirstFit(l, frames, formatF, t_memmove):
 				p = exits.pop(0)					#remove all process memory
 				time = p[0]
 				for i in range(0, len(memory)):
-					if (memory[i] == p[1]):				
+					if (memory[i] == p[1]):
 						memory[i] = "."
 				frames += p[2]						#update number of frames
 				print "time %dms: Process %s removed from physical memory" %(time, p[1])
@@ -142,12 +140,65 @@ def simulateFirstFit(l, frames, formatF, t_memmove):
 			p = exits.pop(0)					#remove all process memory
 			time = p[0]
 			for i in range(0, len(memory)):
-				if (memory[i] == p[1]):				
+				if (memory[i] == p[1]):
 					memory[i] = "."
 			frames += p[2]						#update number of frames
 			print "time %dms: Process %s removed from physical memory" %(time, p[1])
 			print printM(memory, formatF)
 	print "time %dms: Simulator ended (Contiguous -- First-Fit" %(time)
+
+def simulateFitNonContiguous(l, frames, formatF, t_memmove):
+    memory = ["."]*frames							#visual of the memory
+    arrivals = l[0]
+    exits = l[1]
+    time = 0
+    print "time %dms: Simulator started (Non-contiguous)" %(time)
+    while(len(exits)>0):
+            # print exits
+        if len(arrivals)>0:
+            if arrivals[0][0] <= exits[0][0]:
+                p = arrivals.pop(0)
+                time = p[0] #update time
+                print "time %dms: Process %s arrived (requires %d frames of physical memory)" %(time, p[1], p[2])
+                if (frames < p[2]):						#if there is not enough space for the process, skip
+    				print frames
+    				print "time %dms: Cannot place process %s -- skipping process %s" %(time, p[1], p[1])
+    				print printM(memory, formatF)
+    				for i in range(0, len(exits)):		#remove its exit time from the exits list
+    					if exits[i][1] == p[1]:
+    						exits.pop(i)
+    						break
+                else:										#add process to memory
+                    count = 0								#counts how many spaces used
+                    for x in range(0, len(memory)):
+                        if memory[x] == ".":				#if the memory is free, add one to the count
+                            count += 1
+                            memory[x] = p[1]
+                            if count == p[2]:
+                                break
+
+                    print "time %dms: Placed process %s in memory" %(time, p[1])
+                    print printM(memory, formatF)
+                    frames -= p[2]						#update number of available frames
+            else:
+    			p = exits.pop(0)					#remove all process memory
+    			time = p[0]
+    			for i in range(0, len(memory)):
+    				if (memory[i] == p[1]):
+    					memory[i] = "."
+    			frames += p[2]						#update number of frames
+    			print "time %dms: Process %s removed from physical memory" %(time, p[1])
+    			print printM(memory, formatF)
+        else:
+    		p = exits.pop(0)					#remove all process memory
+    		time = p[0]
+    		for i in range(0, len(memory)):
+    			if (memory[i] == p[1]):
+    				memory[i] = "."
+    		frames += p[2]						#update number of frames
+    		print "time %dms: Process %s removed from physical memory" %(time, p[1])
+    		print printM(memory, formatF)
+
 
 #scans for space in memory from most recently added partition
 #I made the assumption that after defragmentation, it will not use searchIndex and will put it directly after the moved memory
@@ -338,7 +389,7 @@ def OPT(pages, frames):
 			count += 1
 			pfaults += 1
 			print "referencing page %d %s PAGE FAULT (no victim page)" %(page, printMem(memory))
-		else:							#if there is no space for it, find victim	
+		else:							#if there is no space for it, find victim
 			victim = [float("inf"), 0]	#[page number, time in future]
 			steps = 0
 			for m in memory:
@@ -347,10 +398,10 @@ def OPT(pages, frames):
 					if m == int(pages[j]):
 						break
 				#if the page in memory will be used later in the future or it is a tie, but it is a lower number, it is the new victim
-				if steps > victim[1] or (steps == victim[1] and m < victim[0]):	
+				if steps > victim[1] or (steps == victim[1] and m < victim[0]):
 					victim = [m, steps]
 				steps = 0
-			index = memory.index(victim[0])	
+			index = memory.index(victim[0])
 			memory[index] = page
 			pfaults += 1
 			print "referencing page %d %s PAGE FAULT (victim page %d)" %(page, printMem(memory), victim[0])
@@ -371,7 +422,7 @@ def LRU(pages, frames):
 			count += 1
 			pfaults += 1
 			print "referencing page %d %s PAGE FAULT (no victim page)" %(page, printMem(memory))
-		else:							#if there is no space for it, find victim	
+		else:							#if there is no space for it, find victim
 			victim = [float("inf"), 0]	#[page number, time in future]
 			steps = 0
 			for m in memory:
@@ -380,10 +431,10 @@ def LRU(pages, frames):
 					if m == int(pages[j]):
 						break
 				#if the page in memory will be used later in the future or it is a tie, but it is a lower number, it is the new victim
-				if steps > victim[1] or (steps == victim[1] and m < victim[0]):	
+				if steps > victim[1] or (steps == victim[1] and m < victim[0]):
 					victim = [m, steps]
 				steps = 0
-			index = memory.index(victim[0])	
+			index = memory.index(victim[0])
 			memory[index] = page
 			pfaults += 1
 			print "referencing page %d %s PAGE FAULT (victim page %d)" %(page, printMem(memory), victim[0])
@@ -406,11 +457,11 @@ def LFU(pages, frames):
 			print "referencing page %d %s PAGE FAULT (no victim page)" %(page, printMem(memory))
 		else:							#if there is no space for it, find victim
 			a = sorted(accesses, key=accesses.get)
-			index = memory.index(a[0])	
+			index = memory.index(a[0])
 			memory[index] = page
 			del accesses[a[0]]
 			pfaults += 1
-			print "referencing page %d %s PAGE FAULT (victim page %d)" %(page, printMem(memory), a[0])	
+			print "referencing page %d %s PAGE FAULT (victim page %d)" %(page, printMem(memory), a[0])
 		if (page in accesses):
 			accesses[page] += 1
 		else:
@@ -433,6 +484,8 @@ if __name__ == "__main__":
 	print
 	simulateBestFit(copy.deepcopy(l), frames, formatF, t_memmove)
 	print
+	simulateFitNonContiguous(copy.deepcopy(l), frames, formatF, t_memmove)
+
 
 	'''
 	vname = sys.argv[2]
@@ -444,8 +497,4 @@ if __name__ == "__main__":
 	print
 	LFU(pages, frames)
 	'''
-	
-
-
-
 
