@@ -1,5 +1,6 @@
 import sys
 import operator
+import copy
 
 def parse(fname):									#parses first input file and creates a list of Process objects
 	arrivals = []									#list of arrival times
@@ -37,7 +38,7 @@ def deFragment(memory, time, t_memmove, formatF, arrivals, exits):							#moves 
 	move = False
 	firstItem = 0													#record first empty spot
 	lastItem = 0													#record last used memory space
-	p = []														#set of all processes moved
+	p = []															#list of all processes moved
 	for i in range(1, len(memory)):									#fill gaps in memory
 		if memory[i-1] == ".":
 			if move == False:
@@ -55,7 +56,6 @@ def deFragment(memory, time, t_memmove, formatF, arrivals, exits):							#moves 
 			memory[i-1] = memory[space]
 			memory[space] = "."
 			lastItem = i
-	print firstItem
 	time += t_memmove * (lastItem - firstItem)						#update time
 	proc = ""
 	for i in range(0, len(p)):
@@ -74,11 +74,11 @@ def deFragment(memory, time, t_memmove, formatF, arrivals, exits):							#moves 
 		newT = exits[i][0] + (lastItem - firstItem)
 		exits[i] = (newT, exits[i][1], exits[i][2])
 
-	return [memory, time, lastItem, arrivals, exits]											#return new memory 
+	return [memory, time, lastItem, arrivals, exits]				#return new memory 
 
 
 
-def simulateFit(l, frames, formatF, t_memmove):
+def simulateFirstFit(l, frames, formatF, t_memmove):
 	memory = ["."]*frames							#visual of the memory
 	arrivals = l[0]
 	exits = l[1]
@@ -91,7 +91,6 @@ def simulateFit(l, frames, formatF, t_memmove):
 				time = p[0]								#update the time
 				print "time %dms: Process %s arrived (requires %d frames of physical memory)" %(time, p[1], p[2])
 				if (frames < p[2]):						#if there is not enough space for the process, skip
-					print frames
 					print "time %dms: Cannot place process %s -- skipping process %s" %(time, p[1], p[1])
 					print printM(memory, formatF)
 					for i in range(0, len(exits)):		#remove its exit time from the exits list
@@ -107,6 +106,7 @@ def simulateFit(l, frames, formatF, t_memmove):
 						else:								#restart the count if it is not free
 							count = 0
 						if count == p[2]:					#if the process can fit, add it
+							print str(x - p[2] + 1) + "-" + str(x + 1)
 							for y in range(x-p[2]+1, x + 1):
 								memory[y] = p[1]
 							print "time %dms: Placed process %s in memory" %(time, p[1])
@@ -147,10 +147,171 @@ def simulateFit(l, frames, formatF, t_memmove):
 			frames += p[2]						#update number of frames
 			print "time %dms: Process %s removed from physical memory" %(time, p[1])
 			print printM(memory, formatF)
-				
+	print "time %dms: Simulator ended (Contiguous -- First-Fit" %(time)
+
+#scans for space in memory from most recently added partition
+#I made the assumption that after defragmentation, it will not use searchIndex and will put it directly after the moved memory
+def simulateNextFit(l, frames, formatF, t_memmove):
+	memory = ["."]*frames							#visual of the memory
+	arrivals = l[0]
+	exits = l[1]
+	time = 0
+	searchIndex = 0									#index for last placed item
+	print "time %dms: Simulator started (Contiguous -- Next-Fit)" %(time)
+	while (len(exits) != 0):						#while there are still processes using memory
+		if len(arrivals) > 0:
+			if arrivals[0][0] <= exits[0][0]:
+				p = arrivals.pop(0)
+				time = p[0]								#update the time
+				print "time %dms: Process %s arrived (requires %d frames of physical memory)" %(time, p[1], p[2])
+				if (frames < p[2]):						#if there is not enough space for the process, skip
+					print "time %dms: Cannot place process %s -- skipping process %s" %(time, p[1], p[1])
+					print printM(memory, formatF)
+					for i in range(0, len(exits)):			#remove its exit time from the exits list
+						if exits[i][1] == p[1]:
+							exits.pop(i)
+							break
+				else:										#add process to memory
+					count = 0								#counts how many consecutive spaces there are
+					fit = False
+					x = searchIndex
+					if searchIndex == len(memory):
+						x = 0
+					while (True):
+						if memory[x] == ".":				#if the memory is free, add one to the count
+							count += 1
+						else:								#restart the count if it is not free
+							count = 0
+						if count == p[2]:					#if the process can fit, add it
+							for y in range(x-p[2]+1, x + 1):
+								memory[y] = p[1]
+							searchIndex = x + 1
+							print "time %dms: Placed process %s in memory" %(time, p[1])
+							print printM(memory, formatF)
+							fit = True							#update variable to say that process fit
+							frames -= p[2]						#update number of available frames
+							break
+						x += 1
+						if x == len(memory):
+							x = 0
+						if x == searchIndex:
+							break
+					if fit == True:
+						continue
+					else:									#if process can't fit in given spaces, defragment
+						print "time %dms: Cannot place process %s -- starting defragmentation" %(time, p[1])
+						r = deFragment(memory, time, t_memmove, formatF, arrivals, exits)
+						memory = r[0]
+						time = r[1]
+						index = r[2]
+						arrivals = r[3]
+						exits = r[4]
+						for z in range(index, index + p[2]):
+							memory[z] = p[1]
+						searchIndex = index + p[2]
+						frames -= p[2]
+						print "time %dms: Placed process %s in memory:" %(time, p[1])
+						print printM(memory, formatF)
+			else:										#process needs to leave memory
+				p = exits.pop(0)					#remove all process memory
+				time = p[0]
+				for i in range(0, len(memory)):
+					if (memory[i] == p[1]):				
+						memory[i] = "."
+				frames += p[2]						#update number of frames
+				print "time %dms: Process %s removed from physical memory" %(time, p[1])
+				print printM(memory, formatF)
+		else:
+			p = exits.pop(0)					#remove all process memory
+			time = p[0]
+			for i in range(0, len(memory)):
+				if (memory[i] == p[1]):				
+					memory[i] = "."
+			frames += p[2]						#update number of frames
+			print "time %dms: Process %s removed from physical memory" %(time, p[1])
+			print printM(memory, formatF)
+	print "time %dms: Simulator ended (Contiguous -- Next-Fit)" %(time)
+
+def simulateBestFit(l, frames, formatF, t_memmove):
+	memory = ["."]*frames		#visual of the memory
+	arrivals = l[0]
+	exits = l[1]
+	time = 0				#list of spaces in memory where meory can be addec; list of tuples in form (num spaces, beginning index)
+	print "time %dms: Simulator started (Contiguous -- Best-Fit)" %(time)
+	while (len(exits) != 0):						#while there are still processes using memory
+		if len(arrivals) > 0:
+			if arrivals[0][0] <= exits[0][0]:
+				begIndex = 0
+				insert = []	
+				p = arrivals.pop(0)
+				time = p[0]								#update the time
+				print "time %dms: Process %s arrived (requires %d frames of physical memory)" %(time, p[1], p[2])
+				if (frames < p[2]):						#if there is not enough space for the process, skip
+					print "time %dms: Cannot place process %s -- skipping process %s" %(time, p[1], p[1])
+					print printM(memory, formatF)
+					for i in range(0, len(exits)):		#remove its exit time from the exits list
+						if exits[i][1] == p[1]:
+							exits.pop(i)
+							break
+				else:										#add process to memory
+					count = 0								#counts how many consecutive spaces there are
+					for x in range(0, len(memory)):
+						if memory[x] == ".":				#if the memory is free, add one to the count
+							count += 1
+						else:								#restart the count if it is not free
+							if count >= p[2]:
+								insert.append((count, begIndex))
+							count = 0
+							begIndex = x + 1
+						if x == len(memory) - 1:
+							if count >= p[2]:
+								insert.append((count, begIndex))
+					#if the insert list is not empty, add process
+					if len(insert) > 0:					#if the process can fit, add it
+						insert = sorted(insert, key=operator.itemgetter(0,1))	
+						begIndex = insert[0][1]
+						print str(begIndex) + "-" + str(begIndex + p[2])
+						for y in range(begIndex, begIndex + p[2]):
+							memory[y] = p[1]
+						print "time %dms: Placed process %s in memory" %(time, p[1])
+						print printM(memory, formatF)
+						fit = True							#update variable to say that process fit
+						frames -= p[2]						#update number of available frames
+					else:									#if process can't fit in given spaces, defragment
+						print "time %dms: Cannot place process %s -- starting defragmentation" %(time, p[1])
+						r = deFragment(memory, time, t_memmove, formatF, arrivals, exits)
+						memory = r[0]
+						time = r[1]
+						index = r[2]
+						arrivals = r[3]
+						exits = r[4]
+						for z in range(index, index + p[2]):
+							memory[z] = p[1]
+						frames -= p[2]
+						print "time %dms: Placed process %s in memory:" %(time, p[1])
+						print printM(memory, formatF)
+			else:										#process needs to leave memory
+				p = exits.pop(0)					#remove all process memory
+				time = p[0]
+				for i in range(0, len(memory)):
+					if (memory[i] == p[1]):				
+						memory[i] = "."
+				frames += p[2]						#update number of frames
+				print "time %dms: Process %s removed from physical memory" %(time, p[1])
+				print printM(memory, formatF)
+		else:
+			p = exits.pop(0)					#remove all process memory
+			time = p[0]
+			for i in range(0, len(memory)):
+				if (memory[i] == p[1]):				
+					memory[i] = "."
+			frames += p[2]						#update number of frames
+			print "time %dms: Process %s removed from physical memory" %(time, p[1])
+			print printM(memory, formatF)
+	print "time %dms: Simulator ended (Contiguous -- Best-Fit)" %(time)
+
 
 #THIRD PORTION OF THE ASSIGNMENT
-
 def vParse(vname):
 	f = open(vname).read().strip()
 	f = f.split(" ")
@@ -263,11 +424,15 @@ if __name__ == "__main__":
 		sys.exit(1)
 	fname = sys.argv[1]
 	l = parse(fname)
-	frames = 256
-	formatF = 32
+	frames = 16
+	formatF = 8
 	t_memmove = 1
-	simulateFit(l, frames, formatF, t_memmove)
-
+	simulateFirstFit(copy.deepcopy(l), frames, formatF, t_memmove)
+	print
+	simulateNextFit(copy.deepcopy(l), frames, formatF, t_memmove)
+	print
+	simulateBestFit(copy.deepcopy(l), frames, formatF, t_memmove)
+	print
 
 	'''
 	vname = sys.argv[2]
@@ -279,6 +444,7 @@ if __name__ == "__main__":
 	print
 	LFU(pages, frames)
 	'''
+	
 
 
 
