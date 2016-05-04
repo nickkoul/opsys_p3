@@ -74,7 +74,7 @@ def deFragment(memory, time, t_memmove, formatF, arrivals, exits):							#moves 
 			newT = arrivals[i][0] + (lastItem - firstItem)
 			arrivals[i] = (newT, arrivals[i][1], arrivals[i][2])
 	for i in range(0, len(exits)):
-		if (arrivals[i][0] < time):				#if process arrived during defragmentation, update time to the time defrag ended
+		if (exits[i][0] < time):				#if process arrived during defragmentation, update time to the time defrag ended
 			exits[i] = (time, exits[i][1], exits[i][2])
 		else:
 			newT = exits[i][0] + (lastItem - firstItem)
