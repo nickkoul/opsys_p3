@@ -74,7 +74,7 @@ def deFragment(memory, time, t_memmove, formatF, arrivals, exits):							#moves 
 		newT = exits[i][0] + (lastItem - firstItem)
 		exits[i] = (newT, exits[i][1], exits[i][2])
 
-	return [memory, time, lastItem, arrivals, exits]				#return new memory 
+	return [memory, time, lastItem, arrivals, exits]				#return new memory
 
 def simulateFirstFit(l, frames, formatF, t_memmove):
 	memory = ["."]*frames							#visual of the memory
@@ -267,7 +267,7 @@ def simulateNextFit(l, frames, formatF, t_memmove):
 				p = exits.pop(0)					#remove all process memory
 				time = p[0]
 				for i in range(0, len(memory)):
-					if (memory[i] == p[1]):				
+					if (memory[i] == p[1]):
 						memory[i] = "."
 				frames += p[2]						#update number of frames
 				print "time %dms: Process %s removed from physical memory" %(time, p[1])
@@ -276,7 +276,7 @@ def simulateNextFit(l, frames, formatF, t_memmove):
 			p = exits.pop(0)					#remove all process memory
 			time = p[0]
 			for i in range(0, len(memory)):
-				if (memory[i] == p[1]):				
+				if (memory[i] == p[1]):
 					memory[i] = "."
 			frames += p[2]						#update number of frames
 			print "time %dms: Process %s removed from physical memory" %(time, p[1])
@@ -293,7 +293,7 @@ def simulateBestFit(l, frames, formatF, t_memmove):
 		if len(arrivals) > 0:
 			if arrivals[0][0] <= exits[0][0]:
 				begIndex = 0
-				insert = []	
+				insert = []
 				p = arrivals.pop(0)
 				time = p[0]								#update the time
 				print "time %dms: Process %s arrived (requires %d frames of physical memory)" %(time, p[1], p[2])
@@ -319,7 +319,7 @@ def simulateBestFit(l, frames, formatF, t_memmove):
 								insert.append((count, begIndex))
 					#if the insert list is not empty, add process
 					if len(insert) > 0:					#if the process can fit, add it
-						insert = sorted(insert, key=operator.itemgetter(0,1))	
+						insert = sorted(insert, key=operator.itemgetter(0,1))
 						begIndex = insert[0][1]
 						print str(begIndex) + "-" + str(begIndex + p[2])
 						for y in range(begIndex, begIndex + p[2]):
@@ -345,7 +345,7 @@ def simulateBestFit(l, frames, formatF, t_memmove):
 				p = exits.pop(0)					#remove all process memory
 				time = p[0]
 				for i in range(0, len(memory)):
-					if (memory[i] == p[1]):				
+					if (memory[i] == p[1]):
 						memory[i] = "."
 				frames += p[2]						#update number of frames
 				print "time %dms: Process %s removed from physical memory" %(time, p[1])
@@ -354,7 +354,7 @@ def simulateBestFit(l, frames, formatF, t_memmove):
 			p = exits.pop(0)					#remove all process memory
 			time = p[0]
 			for i in range(0, len(memory)):
-				if (memory[i] == p[1]):				
+				if (memory[i] == p[1]):
 					memory[i] = "."
 			frames += p[2]						#update number of frames
 			print "time %dms: Process %s removed from physical memory" %(time, p[1])
@@ -497,4 +497,3 @@ if __name__ == "__main__":
 	print
 	LFU(pages, frames)
 	'''
-
